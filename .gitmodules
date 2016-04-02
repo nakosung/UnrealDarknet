@@ -1,0 +1,4 @@
+[submodule "ThirdParty/darknet"]
+	path = ThirdParty/darknet
+	url = https://github.com/nakosung/darknet.git
+	branch = windows
