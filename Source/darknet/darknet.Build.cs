@@ -11,6 +11,11 @@ public class darknet : ModuleRules
         get { return Path.GetFullPath(Path.Combine(ModuleDirectory, "..", "..", "ThirdParty")); }
     }
 
+    protected string CUDAPath
+    {
+        get { return System.Environment.GetEnvironmentVariable("CUDA_PATH"); }
+    }
+
     public darknet(TargetInfo Target)
 	{
         PrivateIncludePaths.AddRange(new string[]
@@ -49,6 +54,11 @@ public class darknet : ModuleRules
             
             Definitions.Add(string.Format("WITH_DARKNET=1"));
 
+            PublicAdditionalLibraries.Add(Path.Combine(CUDAPath, "lib", "x64", "cudart.lib"));
+            PublicAdditionalLibraries.Add(Path.Combine(CUDAPath, "lib", "x64", "cuda.lib"));
+            PublicAdditionalLibraries.Add(Path.Combine(CUDAPath, "lib", "x64", "cublas.lib"));
+            PublicAdditionalLibraries.Add(Path.Combine(CUDAPath, "lib", "x64", "curand.lib"));
+            
             return true;
         }
 
