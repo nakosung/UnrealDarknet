@@ -1,6 +1,7 @@
 # UnrealDarknet
 
 - [Darknet](http://pjreddie.com/darknet/) on UnrealEngine.
+- Powered by [Unreal.js](https://github.com/ncsoft/Unreal.js)
 
 ```js
 let net = DarknetNetwork.parse_network_cfg(cfgfile)
