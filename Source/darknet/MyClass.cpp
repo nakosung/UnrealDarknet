@@ -130,7 +130,7 @@ FDarknetImage UMyClass::make_image(int32 w, int32 h, int32 c)
 	return from_raw(::make_image(w, h, c));
 }
 
-FDarknetImage UMyClass::load_image(UTextureRenderTarget* Target)
+FDarknetImage UMyClass::load_image(int32 dummy, UTextureRenderTarget* Target)
 {
 	FTextureRenderTargetResource* RenderTarget = Target->GameThread_GetRenderTargetResource();
 
@@ -231,6 +231,19 @@ float UMyClass::train_network_sgd(FDarknetNetwork net, FDarknetData d, int n)
 	return ::train_network_sgd(net.Handle->net, d.Handle->data, n);
 }
 
+FDarknetMatrix clone(int32 size, float* out)
+{
+	auto buf = malloc(size * sizeof(float));
+	FMemory::Memcpy(buf, out, sizeof(float) * size);
+	return from_raw(size, (float*)buf);
+}
+
+FDarknetMatrix UMyClass::network_predict_image(FDarknetNetwork net, FDarknetImage test)
+{
+	auto size = get_network_output_size(net);
+	return clone(size, ::network_predict(net.Handle->net, test.Handle->image.data));
+}
+
 FDarknetMatrix UMyClass::network_predict_data(FDarknetNetwork net, FDarknetData test)
 {
 	return from_raw(::network_predict_data(net.Handle->net, test.Handle->data));
@@ -239,10 +252,7 @@ FDarknetMatrix UMyClass::network_predict_data(FDarknetNetwork net, FDarknetData 
 FDarknetMatrix UMyClass::network_predict(FDarknetNetwork net, FDarknetMatrix input)
 {
 	auto size = get_network_output_size(net);
-	auto buf = malloc(size * sizeof(float));
-	auto out = ::network_predict(net.Handle->net, input.Handle->mat.vals[0]);
-	FMemory::Memcpy(buf, out, sizeof(float) * size);
-	return from_raw(size,(float*)buf);
+	return clone(size, ::network_predict(net.Handle->net, input.Handle->mat.vals[0]));
 }
 
 float UMyClass::network_accuracy(FDarknetNetwork net, FDarknetData d)

@@ -417,7 +417,7 @@ class DARKNET_API UMyClass : public UBlueprintFunctionLibrary
 	static FDarknetImage make_image(int32 w, int32 h, int32 c);
 
 	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
-	static FDarknetImage load_image(UTextureRenderTarget* Target);
+	static FDarknetImage load_image(int32 dummy, UTextureRenderTarget* Target);
 	
 	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
 	static FDarknetImage copy_image(FDarknetImage p);
@@ -447,6 +447,8 @@ class DARKNET_API UMyClass : public UBlueprintFunctionLibrary
 	/*UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
 	static float train_network_datum(network net, float *x, float *y);*/
 
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetMatrix network_predict_image(FDarknetNetwork net, FDarknetImage test);
 	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
 	static FDarknetMatrix network_predict_data(FDarknetNetwork net, FDarknetData test);
 	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
