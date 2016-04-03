@@ -18,7 +18,7 @@ public class darknet : ModuleRules
             Path.Combine(ThirdPartyPath),
         });
 
-        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
+        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "V8" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

@@ -3,6 +3,8 @@
 #include "darknet.h"
 #include "MyClass.h"
 
+PRAGMA_DISABLE_OPTIMIZATION
+
 extern "C" {
 	#include <darknet/src/network.h>
 	#include <darknet/src/parser.h>
@@ -67,6 +69,16 @@ FDarknetMatrix from_raw(int cols, float* buf)
 	free(mat.vals[0]);
 	mat.vals[0] = buf;
 	return from_raw(mat);
+}
+
+void* FDarknetMatrix::GetMemory(const int32* Dim)
+{
+	return Handle->mat.vals[Dim[0]];
+}
+
+int32 FDarknetMatrix::GetSize(int32 Dim)
+{
+	return Dim == 0 ? Handle->mat.rows : (Handle->mat.cols * sizeof(float));
 }
 
 FDarknetNetwork UMyClass::parse_network_cfg(const FString& Filename)
@@ -154,8 +166,11 @@ FDarknetMatrix UMyClass::network_predict_data(FDarknetNetwork net, FDarknetData 
 
 FDarknetMatrix UMyClass::network_predict(FDarknetNetwork net, FDarknetMatrix input)
 {
-	auto size = get_network_input_size(net);
-	return from_raw(size,::network_predict(net.Handle->net, input.Handle->mat.vals[0]));
+	auto size = get_network_output_size(net);
+	auto buf = malloc(size * sizeof(float));
+	auto out = ::network_predict(net.Handle->net, input.Handle->mat.vals[0]);
+	FMemory::Memcpy(buf, out, sizeof(float) * size);
+	return from_raw(size,(float*)buf);
 }
 
 float UMyClass::network_accuracy(FDarknetNetwork net, FDarknetData d)
@@ -191,4 +206,55 @@ int32 UMyClass::get_network_input_size(FDarknetNetwork net)
 float UMyClass::get_network_cost(FDarknetNetwork net)
 {
 	return ::get_network_cost(net.Handle->net);
+}
+
+UScriptStruct* FDarknetNetwork::GetScriptStruct(int32 Index)
+{
+	auto& net = Handle->net;
+
+	if (Index == 0) return FDarknetNetwork_Raw::StaticStruct();
+	Index--;
+
+	if (Index < net.n) return FDarknetLayer_Raw::StaticStruct();
+	Index -= net.n;
+
+	return nullptr;
+}
+
+void* FDarknetNetwork::GetData(int32 Index)
+{
+	auto& net = Handle->net;
+
+	if (Index == 0) return &net;
+	Index--;
+
+	if (Index < net.n) return net.layers + Index;
+	Index -= net.n;
+
+	if (Index < net.outputs) return net.output + Index;
+	Index -= net.outputs;
+
+	return nullptr;
+}
+
+int32 FDarknetNetwork::GetNumData()
+{
+	auto& net = Handle->net;
+
+	return 1 + net.n + net.outputs;
+}
+
+FName FDarknetNetwork::GetDataName(int32 Index)
+{
+	auto& net = Handle->net;
+	if (Index == 0) return FName("self");
+	Index--;
+
+	if (Index < net.n) return FName("layer", Index+1);
+	Index -= net.n;
+
+	if (Index < net.outputs) return FName("output", Index+1);
+	Index -= net.outputs;
+	
+	return FName();
 }
