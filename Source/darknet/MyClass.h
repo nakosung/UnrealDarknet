@@ -8,6 +8,7 @@
 
 class FDarknetNetwork_Private;
 class FDarknetMatrix_Private;
+class FDarknetImage_Private;
 class FDarknetData_Private;
 
 USTRUCT()
@@ -29,6 +30,19 @@ struct FDarknetData
 	GENERATED_BODY()
 
 	TSharedPtr<FDarknetData_Private> Handle;
+};
+
+USTRUCT()
+struct FDarknetImage : public FJavascriptMemoryStruct
+{
+	GENERATED_BODY()
+
+	TSharedPtr<FDarknetImage_Private> Handle;
+
+public:
+	virtual int32 GetDimension() override { return 1; }
+	virtual void* GetMemory(const int32* Dim) override;
+	virtual int32 GetSize(int32 Dim) override;
 };
 
 UENUM()
@@ -103,6 +117,8 @@ public:
 	UPROPERTY()
 	EDarknetLearningRatePolicy policy;
 
+	uint8 pad0[3];
+
 	UPROPERTY()
 	float learning_rate;
 
@@ -154,11 +170,17 @@ struct FDarknetLayer_Raw
 	UPROPERTY()
 	EDarknetLayer type;
 
+	uint8 pad0[3];
+
 	UPROPERTY()
 	EDarknetActivation activation;
 
+	uint8 pad1[3];
+
 	UPROPERTY()
 	EDarknetCost cost_type;
+
+	uint8 pad2[3];
 	
 	UPROPERTY()
 	int batch_normalize;
@@ -389,7 +411,16 @@ class DARKNET_API UMyClass : public UBlueprintFunctionLibrary
 	static FDarknetNetwork parse_network_cfg(const FString& Filename);
 
 	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
-	static FDarknetMatrix make(int32 rows, int32 cols);
+	static FDarknetMatrix make_matrix(int32 rows, int32 cols);
+
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage make_image(int32 w, int32 h, int32 c);
+
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage load_image(UTextureRenderTarget* Target);
+	
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage copy_image(FDarknetImage p);
 
 	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
 	static void load_weights(FDarknetNetwork net, const FString& Filename);
@@ -472,4 +503,68 @@ class DARKNET_API UMyClass : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
 	static FDarknetMatrix pop_column(FDarknetMatrix m, int32 c);
+
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static float get_color(int32 c, int32 x, int32 max);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void flip_image(FDarknetImage a);
+	/*void draw_box(FDarknetImage a, int32 x1, int32 y1, int32 x2, int32 y2, float r, float g, float b);
+	static void draw_box_width(FDarknetImage a, int32 x1, int32 y1, int32 x2, int32 y2, int32 w, float r, float g, float b);
+	static void draw_bbox(FDarknetImage a, box bbox, int32 w, float r, float g, float b);
+	static void draw_label(FDarknetImage a, int32 r, int32 c, FDarknetImage label, const float *rgb);
+	static void draw_detections(FDarknetImage im, int32 num, float thresh, box *boxes, float **probs, char **names, FDarknetImage *labels, int32 classes);*/
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage image_distance(FDarknetImage a, FDarknetImage b);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void scale_image(FDarknetImage m, float s);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage crop_image(FDarknetImage im, int32 dx, int32 dy, int32 w, int32 h);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage random_crop_image(FDarknetImage im, int32 low, int32 high, int32 size);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage resize_image(FDarknetImage im, int32 w, int32 h);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage resize_min(FDarknetImage im, int32 min);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void translate_image(FDarknetImage m, float s);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void normalize_image(FDarknetImage p);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage rotate_image(FDarknetImage m, float rad);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void rotate_image_cw(FDarknetImage im, int32 times);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void embed_image(FDarknetImage source, FDarknetImage dest, int32 dx, int32 dy);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void saturate_image(FDarknetImage im, float sat);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void exposure_image(FDarknetImage im, float sat);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void saturate_exposure_image(FDarknetImage im, float sat, float exposure);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void hsv_to_rgb(FDarknetImage im);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void rgbgr_image(FDarknetImage im);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void constrain_image(FDarknetImage im);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage grayscale_image(FDarknetImage im);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage threshold_image(FDarknetImage im, float thresh);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage collapse_image_layers(FDarknetImage source, int32 border);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage collapse_images_horz(FDarknetImage ims, int32 n);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static FDarknetImage collapse_images_vert(FDarknetImage ims, int32 n);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static float get_pixel(FDarknetImage m, int32 x, int32 y, int32 c);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static float get_pixel_extend(FDarknetImage m, int32 x, int32 y, int32 c);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void set_pixel(FDarknetImage m, int32 x, int32 y, int32 c, float val);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static void add_pixel(FDarknetImage m, int32 x, int32 y, int32 c, float val);
+	UFUNCTION(BlueprintCallable, Category = "Machine learning | Dark net")
+	static float bilinear_interpolate(FDarknetImage im, float x, float y, int32 c);
 };

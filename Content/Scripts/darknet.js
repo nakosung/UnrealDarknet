@@ -10,8 +10,8 @@ if (!global.$boot) {
     return require('devrequire')('darknet')
 }
 
-module.exports = function() {    
-    require('./rnn')    
-    return _ => {}    
+module.exports = function() {
+    return require('./yolo')()    
+    //return require('./rnn')()
 }
 

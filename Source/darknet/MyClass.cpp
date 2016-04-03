@@ -41,6 +41,21 @@ public:
 	matrix mat;
 };
 
+class FDarknetImage_Private
+{
+public:
+	FDarknetImage_Private(image image)
+		: image(image)
+	{}
+
+	~FDarknetImage_Private()
+	{
+		free_image(image);
+	}
+
+	image image;
+};
+
 class FDarknetData_Private
 {
 public:
@@ -71,6 +86,13 @@ FDarknetMatrix from_raw(int cols, float* buf)
 	return from_raw(mat);
 }
 
+FDarknetImage from_raw(image image)
+{
+	FDarknetImage instance;
+	instance.Handle = TSharedPtr<FDarknetImage_Private>(new FDarknetImage_Private(image));
+	return instance;
+}
+
 void* FDarknetMatrix::GetMemory(const int32* Dim)
 {
 	return Handle->mat.vals[Dim[0]];
@@ -81,6 +103,16 @@ int32 FDarknetMatrix::GetSize(int32 Dim)
 	return Dim == 0 ? Handle->mat.rows : (Handle->mat.cols * sizeof(float));
 }
 
+void* FDarknetImage::GetMemory(const int32* Dim)
+{
+	return Handle->image.data;
+}
+
+int32 FDarknetImage::GetSize(int32 Dim)
+{
+	return Handle->image.w * Handle->image.h * Handle->image.c * sizeof(float);
+}
+
 FDarknetNetwork UMyClass::parse_network_cfg(const FString& Filename)
 {
 	FDarknetNetwork instance;	
@@ -88,9 +120,49 @@ FDarknetNetwork UMyClass::parse_network_cfg(const FString& Filename)
 	return instance;
 }
 
-FDarknetMatrix UMyClass::make(int32 rows, int32 cols)
+FDarknetMatrix UMyClass::make_matrix(int32 rows, int32 cols)
 {
-	return from_raw(make_matrix(rows, cols));
+	return from_raw(::make_matrix(rows, cols));
+}
+
+FDarknetImage UMyClass::make_image(int32 w, int32 h, int32 c)
+{
+	return from_raw(::make_image(w, h, c));
+}
+
+FDarknetImage UMyClass::load_image(UTextureRenderTarget* Target)
+{
+	FTextureRenderTargetResource* RenderTarget = Target->GameThread_GetRenderTargetResource();
+
+	auto Width = (int)Target->GetSurfaceWidth();
+	auto Height = (int)Target->GetSurfaceHeight();
+	auto image = ::make_image(Width, Height, 3);
+
+	TArray<FColor> SurfaceData;
+	SurfaceData.AddUninitialized(Width * Height);
+
+	// Read pixels
+	FIntRect Area(0, 0, Width, Height);
+	auto readSurfaceDataFlags = FReadSurfaceDataFlags();
+	readSurfaceDataFlags.SetLinearToGamma(false);
+	RenderTarget->ReadPixelsPtr(SurfaceData.GetData(), readSurfaceDataFlags, Area);
+
+	for (auto Y = 0; Y < Height; ++Y)
+	{
+		for (auto X = 0; X < Width; ++X)
+		{
+			const auto& Source = SurfaceData[X + Y * Width];
+			::set_pixel(image, X, Y, 0, Source.R / 255.0f);
+			::set_pixel(image, X, Y, 1, Source.G / 255.0f);
+			::set_pixel(image, X, Y, 2, Source.B / 255.0f);
+		}
+	}
+	return from_raw(image);
+}
+
+FDarknetImage UMyClass::copy_image(FDarknetImage p)
+{
+	return from_raw(::copy_image(p.Handle->image));
 }
 
 void UMyClass::load_weights(FDarknetNetwork instance, const FString& Filename)
@@ -257,4 +329,130 @@ FName FDarknetNetwork::GetDataName(int32 Index)
 	Index -= net.outputs;
 	
 	return FName();
+}
+
+float UMyClass::get_color(int32 c, int32 x, int32 max)
+{
+	return ::get_color(c, x, max);
+}
+void UMyClass::flip_image(FDarknetImage a)
+{
+	return ::flip_image(a.Handle->image);
+}
+/*void draw_box(FDarknetImage a, int32 x1, int32 y1, int32 x2, int32 y2, float r, float g, float b);
+void draw_box_width(FDarknetImage a, int32 x1, int32 y1, int32 x2, int32 y2, int32 w, float r, float g, float b);
+void draw_bbox(FDarknetImage a, box bbox, int32 w, float r, float g, float b);
+void draw_label(FDarknetImage a, int32 r, int32 c, FDarknetImage label, const float *rgb);
+void draw_detections(FDarknetImage im, int32 num, float thresh, box *boxes, float **probs, char **names, FDarknetImage *labels, int32 classes);*/
+FDarknetImage UMyClass::image_distance(FDarknetImage a, FDarknetImage b)
+{
+	return from_raw(::image_distance(a.Handle->image, b.Handle->image));
+}
+void UMyClass::scale_image(FDarknetImage m, float s)
+{
+	return ::scale_image(m.Handle->image, s);
+}
+FDarknetImage UMyClass::crop_image(FDarknetImage im, int32 dx, int32 dy, int32 w, int32 h)
+{
+	return from_raw(::crop_image(im.Handle->image, dx, dy, w, h));
+}
+FDarknetImage UMyClass::random_crop_image(FDarknetImage im, int32 low, int32 high, int32 size)
+{
+	return from_raw(::random_crop_image(im.Handle->image, low, high, size));
+}
+FDarknetImage UMyClass::resize_image(FDarknetImage im, int32 w, int32 h)
+{
+	return from_raw(::resize_image(im.Handle->image, w, h));
+}
+FDarknetImage UMyClass::resize_min(FDarknetImage im, int32 min)
+{
+	return from_raw(::resize_min(im.Handle->image, min));
+}
+void UMyClass::translate_image(FDarknetImage m, float s)
+{
+	::translate_image(m.Handle->image, s);
+}
+void UMyClass::normalize_image(FDarknetImage p)
+{
+	::normalize_image(p.Handle->image);
+}
+FDarknetImage UMyClass::rotate_image(FDarknetImage m, float rad)
+{
+	return from_raw(::rotate_image(m.Handle->image, rad));
+}
+void UMyClass::rotate_image_cw(FDarknetImage im, int32 times)
+{
+	::rotate_image_cw(im.Handle->image, times);
+}
+void UMyClass::embed_image(FDarknetImage source, FDarknetImage dest, int32 dx, int32 dy)
+{
+	::embed_image(source.Handle->image, dest.Handle->image, dx, dy);
+}
+void UMyClass::saturate_image(FDarknetImage im, float sat)
+{
+	::saturate_image(im.Handle->image, sat);
+}
+void UMyClass::exposure_image(FDarknetImage im, float sat)
+{
+	::exposure_image(im.Handle->image, sat);
+}
+void UMyClass::saturate_exposure_image(FDarknetImage im, float sat, float exposure)
+{
+	::saturate_exposure_image(im.Handle->image, sat, exposure);
+}
+void UMyClass::hsv_to_rgb(FDarknetImage im)
+{
+	::hsv_to_rgb(im.Handle->image);
+}
+void UMyClass::rgbgr_image(FDarknetImage im)
+{
+	::rgbgr_image(im.Handle->image);
+}
+void UMyClass::constrain_image(FDarknetImage im)
+{
+	::constrain_image(im.Handle->image);
+}
+
+FDarknetImage UMyClass::grayscale_image(FDarknetImage im)
+{
+	return from_raw(::grayscale_image(im.Handle->image));
+}
+
+FDarknetImage UMyClass::threshold_image(FDarknetImage im, float thresh)
+{
+	return from_raw(::threshold_image(im.Handle->image, thresh));
+}
+
+FDarknetImage UMyClass::collapse_image_layers(FDarknetImage source, int32 border)
+{
+	return from_raw(::collapse_image_layers(source.Handle->image, border));
+}
+FDarknetImage UMyClass::collapse_images_horz(FDarknetImage ims, int32 n)
+{
+	return from_raw(::collapse_images_horz(&ims.Handle->image, n));
+}
+FDarknetImage UMyClass::collapse_images_vert(FDarknetImage ims, int32 n)
+{
+	return from_raw(::collapse_images_vert(&ims.Handle->image, n));
+}
+
+float UMyClass::get_pixel(FDarknetImage m, int32 x, int32 y, int32 c)
+{
+	return ::get_pixel(m.Handle->image, x, y, c);
+}
+float UMyClass::get_pixel_extend(FDarknetImage m, int32 x, int32 y, int32 c)
+{
+	return ::get_pixel_extend(m.Handle->image, x, y, c);
+}
+void UMyClass::set_pixel(FDarknetImage m, int32 x, int32 y, int32 c, float val)
+{
+	::set_pixel(m.Handle->image, x, y, c, val);
+}
+void UMyClass::add_pixel(FDarknetImage m, int32 x, int32 y, int32 c, float val)
+{
+	::add_pixel(m.Handle->image, x, y, c, val);
+}
+float UMyClass::bilinear_interpolate(FDarknetImage im, float x, float y, int32 c)
+{
+	return ::bilinear_interpolate(im.Handle->image, x, y, c);
 }
