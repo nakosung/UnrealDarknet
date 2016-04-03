@@ -1,0 +1,9 @@
+*.sln
+*.sdf
+*.opendb
+Saved/
+Binaries/
+.vs/
+Intermediate/
+Content/Scripts/typings
+Content/Scripts/aliases.js
