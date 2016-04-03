@@ -2,3 +2,6 @@
 	path = ThirdParty/darknet
 	url = https://github.com/nakosung/darknet.git
 	branch = windows
+[submodule "Plugins/UnrealJS"]
+	path = Plugins/UnrealJS
+	url = https://github.com/ncsoft/Unreal.js-core
