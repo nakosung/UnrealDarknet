@@ -4,6 +4,8 @@
 
 let _ = require('lodash')
 
+const voc_names = ["aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
+
 function convert_yolo_detections(predictions, classes, num, square, side, w, h, thresh, probs, boxes, only_objectness) {
     let i,j,n;
     //int per_cell = 5*num+classes;
@@ -102,7 +104,7 @@ function print_yolo_detections(boxes, probs, total, classes, w, h) {
         if (ymax > h) ymax = h;
 
         for(j = 0; j < classes; ++j){
-            if (probs[i][j]) console.log(`class${j}`, probs[i][j], xmin, ymin, xmax, ymax);
+            if (probs[i][j]) console.log(voc_names[j], probs[i][j], xmin, ymin, xmax, ymax);
         }
     }
 }
