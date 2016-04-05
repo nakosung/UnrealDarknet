@@ -22,3 +22,7 @@ let input = DarknetMatrix.make(1,input_size)
 ```
 
 ![Imgur](http://i.imgur.com/dTRPc4A.png)
+
+## Installation guide
+- Build darknet 
+- Download pretrained weights from [darknet homepage](http://pjreddie.com/darknet/)
