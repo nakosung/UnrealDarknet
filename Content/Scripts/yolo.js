@@ -89,8 +89,7 @@ function do_nms_sort(boxes, probs, total, classes, thresh) {
     }
 }
 
-function print_yolo_detections(boxes, probs, total, classes, w, h) {
-    console.log('-')
+function print_yolo_detections(out, boxes, probs, total, classes, w, h) {
     var i, j;
     for(i = 0; i < total; ++i){
         var xmin = boxes[i].x - boxes[i].w/2.;
@@ -104,7 +103,7 @@ function print_yolo_detections(boxes, probs, total, classes, w, h) {
         if (ymax > h) ymax = h;
 
         for(j = 0; j < classes; ++j){
-            if (probs[i][j]) console.log(voc_names[j], probs[i][j], xmin, ymin, xmax, ymax);
+            if (probs[i][j]) out(voc_names[j], probs[i][j], xmin, ymin, xmax, ymax);
         }
     }
 }
@@ -112,6 +111,73 @@ function print_yolo_detections(boxes, probs, total, classes, w, h) {
 
 module.exports = () => {
     let alive = true
+    
+    let brushAsset = new SlateBrushAsset()
+    brushAsset.Brush.ResourceObject = TextureRenderTarget2D.Load('/Game/Camera.Camera')
+    brushAsset.Brush.ImageSize = {X:512,Y:512}
+    
+    let whiteBrushAsset = new SlateBrushAsset()
+    
+    let annotations = []
+    // create a widget
+    class TestWidget2 extends JavascriptWidget {
+        OnPaint(context) {
+            PaintContext.C(context).DrawBox({X:0,Y:0},{X:512,Y:512},brushAsset,{R:1,G:1,B:1,A:1})
+                         
+        }
+    }
+    
+    let TestWidget2_C = require('uclass')()(global,TestWidget2)
+    class TestWidget extends JavascriptWidget {
+        OnPaint(context) {
+            let start = {X:0,Y:0}
+            let r = 512
+            let t = (new Date() | 0) / 1000
+            let end = {X:Math.cos(t)*r,Y:Math.sin(t)*r}
+            // PaintContext.C(context).DrawBox({X:0,Y:0},{X:512,Y:512},brushAsset,{R:1,G:1,B:1,A:1})
+            PaintContext.C(context).DrawLine(start,end,{R:1,A:1},true)
+            
+            annotations.forEach(a => {
+                PaintContext.C(context).DrawBox(
+                    {X:a.xmin * 512,Y:a.ymin * 512},
+                    {X:(a.xmax - a.xmin) * 512,Y:(a.ymax - a.ymin) * 512},
+                    whiteBrushAsset,
+                    {R:1,G:1,B:1,A:a.prob})
+                PaintContext.C(context).DrawText(
+                    `${a.id} ${a.prob}`,
+                    {X:a.xmin * 512,Y:a.ymin * 512},
+                    GEngine.TinyFont,
+                    16,
+                    'Regular',
+                    {R:1,G:1,B:1,A:1}
+                )
+            })           
+        }
+    }
+    
+    let TestWidget_C = require('uclass')()(global,TestWidget)
+    let instantiator = require('instantiator')
+    let UMG = require('UMG')
+    
+    let design = UMG.div({'slot.size.size-rule':'Fill'},
+        UMG.text({},"YOLO / darknet / Unreal.js / UnrealEngine"),
+        UMG.span({'slot.size.size-rule':'Fill'},
+            UMG(SizeBox,{
+                'slot.size.size-rule':'Fill',
+                WidthOverride:512,
+                HeightOverride:512},
+                UMG(TestWidget_C,{})
+            ),
+            UMG(TestWidget2_C,{'slot.size.size-rule':'Fill'})
+        )
+    )
+    let page = instantiator(design)    
+    let widget = GWorld.CreateWidget(JavascriptWidget)
+    widget.JavascriptContext = Context
+    widget.SetRootWidget(page)
+    widget.AddToViewport()
+    
+    // if (0)
     process.nextTick(__ => {
         let cfgfile = Context.GetDir('Game')+'/ThirdParty/darknet/cfg/yolo-tiny.cfg'
         let weightfile = Context.GetDir('GameContent')+'/Weights/yolo-tiny.weights'
@@ -123,7 +189,7 @@ module.exports = () => {
                 let cam = _.find(GWorld.GetAllActorsOfClass(CameraActor).OutActors,actor => actor.GetDisplayName() == 'CAPTURE')
                 let target = cam.SceneCaptureComponent2D.TextureTarget
                 
-                const thresh = 0.001
+                const thresh = 0.05
                 let nms = 0.5
                 let iou_thresh = 0.5
                 
@@ -139,7 +205,11 @@ module.exports = () => {
                         let data = new Float32Array(ab[0])                        
                         convert_yolo_detections(data, l.classes, l.n, l.square, l.side, 1, 1, thresh, probs, boxes, 0)
                         if (nms) do_nms_sort(boxes, probs, l.side*l.side*l.n, l.classes, nms);
-                        print_yolo_detections(boxes, probs, l.side*l.side*l.n, l.classes, 1, 1);
+                        annotations.length = 0
+                        function dump(id,prob,xmin,ymin,xmax,ymax) {
+                            annotations.push({id:id,prob:prob,xmin:xmin,ymin:ymin,xmax:xmax,ymax:ymax})
+                        }
+                        print_yolo_detections(dump,boxes, probs, l.side*l.side*l.n, l.classes, 1, 1);
                     })
                     process.nextTick(tick)                    
                 }
@@ -149,6 +219,7 @@ module.exports = () => {
     })    
     
     return () => {
+        widget.RemoveFromViewport()
         alive = false
     }
 }
